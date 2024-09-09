@@ -1,0 +1,17 @@
+body
+{
+  margin:20px;
+}
+
+.table-default{
+  font-size: 20px;
+  border-radius:100px; 
+  border: 2px solid black;
+  max-width: 80%;
+  margin:20px auto;
+}
+
+.form-default{
+  max-width: 60%;
+  margin: 20px auto;
+}
