@@ -5,6 +5,28 @@ import axios from "axios";
 import { Button, Table, Modal, Form, Container, Alert } from "react-bootstrap";
 import NavBar from "../components/NavBar";
 
+const calculateHours = (start, end) => {
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  const diffInMilliseconds = endDate - startDate;
+  const diffInHours = diffInMilliseconds / (1000 * 60 * 60);
+  return diffInHours.toFixed(2);
+};
+
+const calculateTotalHours = (activities) => {
+  return activities
+    .reduce((total, activity) => {
+      return (
+        total + parseFloat(calculateHours(activity.beginning, activity.end))
+      );
+    }, 0)
+    .toFixed(2);
+};
+
+const calculateTotalValue = (totalHours, valuePerHour) => {
+  return (parseFloat(totalHours) * parseFloat(valuePerHour)).toFixed(2);
+};
+
 export default function Activities() {
   const [activities, setActivities] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -17,6 +39,7 @@ export default function Activities() {
   });
   const [isEditing, setIsEditing] = useState(false);
   const [editingActivity, setEditingActivity] = useState(null);
+  const [projectDetails, setProjectDetails] = useState(null);
 
   const { projectId } = useParams();
   const { user } = useAuth();
@@ -26,6 +49,7 @@ export default function Activities() {
     if (projectId) {
       setNewActivity((prev) => ({ ...prev, projectId }));
       fetchActivities();
+      fetchProjectDetails();
     }
   }, [projectId]);
 
@@ -43,6 +67,22 @@ export default function Activities() {
     } catch (error) {
       setError("Failed to fetch activities");
       console.error("Error:", error);
+    }
+  };
+
+  const fetchProjectDetails = async () => {
+    try {
+      const response = await axios.get(
+        `http://localhost:8080/api/project/${user.id}/get-project/${projectId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      setProjectDetails(response.data);
+    } catch (error) {
+      console.error("Error fetching project details:", error);
     }
   };
 
@@ -157,6 +197,7 @@ export default function Activities() {
               <th>Description</th>
               <th>Start Time</th>
               <th>End Time</th>
+              <th>Total Hours</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -166,6 +207,9 @@ export default function Activities() {
                 <td>{activity.description}</td>
                 <td>{new Date(activity.beginning).toLocaleString()}</td>
                 <td>{new Date(activity.end).toLocaleString()}</td>
+                <td>
+                  {calculateHours(activity.beginning, activity.end)} hours
+                </td>
                 <td>
                   <div className="d-flex gap-2">
                     <Button
@@ -187,7 +231,44 @@ export default function Activities() {
               </tr>
             ))}
           </tbody>
+          <tfoot>
+            <tr className="table-info">
+              <td colSpan="3" className="text-end fw-bold">
+                Total Project Hours:
+              </td>
+              <td colSpan="2" className="fw-bold">
+                {calculateTotalHours(activities)} hours
+              </td>
+            </tr>
+          </tfoot>
         </Table>
+
+        {projectDetails && (
+          <div className="mt-4 p-3 bg-light rounded">
+            <h4>Project Summary</h4>
+            <div className="d-flex justify-content-between align-items-center">
+              <div>
+                <p className="mb-1">
+                  <strong>Value per Hour:</strong> $
+                  {projectDetails.valuePerHour}
+                </p>
+                <p className="mb-1">
+                  <strong>Total Hours:</strong>{" "}
+                  {calculateTotalHours(activities)}
+                </p>
+              </div>
+              <div>
+                <h5 className="text-primary">
+                  Total Project Value: $
+                  {calculateTotalValue(
+                    calculateTotalHours(activities),
+                    projectDetails.valuePerHour
+                  )}
+                </h5>
+              </div>
+            </div>
+          </div>
+        )}
 
         <Modal show={showModal} onHide={() => setShowModal(false)}>
           <Modal.Header closeButton>
