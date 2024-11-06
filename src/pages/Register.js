@@ -1,11 +1,13 @@
 import { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 export default function Register() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -18,15 +20,10 @@ export default function Register() {
         }
       );
 
-      // Store the token
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("userId", response.data.userId);
-
-      // Redirect to home page
+      login(response.data.token);
       navigate("/");
     } catch (error) {
       console.error("Registration failed:", error);
-      // Add error handling here (e.g., display error message to user)
     }
   };
 

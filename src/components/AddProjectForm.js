@@ -1,103 +1,123 @@
-import { useEffect, useState } from 'react';
-import Button from 'react-bootstrap/Button';
-import Form from 'react-bootstrap/Form';
-import { useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import Button from "react-bootstrap/Button";
+import Form from "react-bootstrap/Form";
+import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import axios from "axios";
 
 export default function AddProjectForm() {
-    const [newProject, setNewProject] = useState({
-        nameProject: "",
-        description: "",
-        valuePerHour: ""
-    })
-    const {idProject} = useParams();
+  const [newProject, setNewProject] = useState({
+    nameProject: "",
+    description: "",
+    valuePerHour: "",
+  });
+  const { projectId } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
-    useEffect(() => {
-        if (idProject) {
-          axios.get(`http://localhost:8080/api/project/1/get-project/${idProject}`)
-            .then(response => {
-              const responseData = response.data; // Access the nested data
-              setNewProject({
-                nameProject: responseData.nameProject || '',
-                description: responseData.description || '',
-                valuePerHour: responseData.valuePerHour || ''
-              });
-            })
-            .catch(error => {
-              console.error('Error fetching project data:', error);
-            });
-        }
-      }, [idProject]);
-
-    async function handleSubmit(){
-        try {
-            let response;
-            if(idProject){
-                response = axios.put(`http://localhost:8080/api/project/1/update-project/${idProject}`, newProject)
-            } else{
-                response = axios.post('http://localhost:8080/api/project/1/add-project', newProject);
-            }
-
-            const data = await response.json();
-
-        
-            console.error(`HTTP error! status: ${response.status}`);
-            if(!response.ok){
-                console.error(`HTTP error! status: ${response.status}`);
-            }
-            setNewProject({nameProject: "", description: "", valuePerHour: ""});
-
-        } catch (error) {
-            console.error(error.message);
-        }
-    }
-
-    const handleChange = (event) => {
-        const { name, value } = event.target;
-        setNewProject(prevState => ({
-            ...prevState,
-            [name]: value
-        }));
-        console.log(newProject)
+  useEffect(() => {
+    const fetchProject = async () => {
+      try {
+        const response = await axios.get(
+          `http://localhost:8080/api/project/${user.id}/get-project/${projectId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+        const projectData = response.data;
+        setNewProject({
+          nameProject: projectData.nameProject || "",
+          description: projectData.description || "",
+          valuePerHour: projectData.valuePerHour || "",
+        });
+      } catch (error) {
+        console.error("Error fetching project data:", error);
+      }
     };
-    
 
-    return (
-        <Form className='form-default' onSubmit={handleSubmit}>
-            <Form.Group className="mb-3" controlId="nameProject">
-                <Form.Label>Project Name</Form.Label>
-                <Form.Control 
-                    type="text" 
-                    name="nameProject" 
-                    value={newProject.nameProject}
-                    onChange={handleChange}
-                    placeholder="Enter project name" />
-            </Form.Group>
+    if (projectId && user) {
+      fetchProject();
+    }
+  }, [projectId, user]);
 
-            <Form.Group className="mb-3" controlId="description">
-                <Form.Label>Description</Form.Label>
-                <Form.Control 
-                    as="textarea" 
-                    name="description"
-                    value={newProject.description}
-                    onChange={handleChange}
-                    rows={5}
-                    placeholder="Enter Description" />
-            </Form.Group>
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const config = {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      };
 
-            <Form.Group className="mb-3" controlId="valuePerHour">
-                <Form.Label>Value Per Hour</Form.Label>
-                <Form.Control 
-                    type="number" 
-                    name="valuePerHour"
-                    value={newProject.valuePerHour}
-                    onChange={handleChange}
-                    placeholder="Enter Value per hour" />
-            </Form.Group>
+      if (projectId) {
+        await axios.put(
+          `http://localhost:8080/api/project/${user.id}/update-project/${projectId}`,
+          newProject,
+          config
+        );
+      } else {
+        await axios.post(
+          `http://localhost:8080/api/project/${user.id}/add-project`,
+          newProject,
+          config
+        );
+      }
+      navigate("/");
+    } catch (error) {
+      console.error("Error submitting project:", error);
+    }
+  };
 
-            <Button variant="primary" type="submit">
-                Submit
-            </Button>
-        </Form>
-    );
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setNewProject((prevState) => ({
+      ...prevState,
+      [name]: value,
+    }));
+  };
+
+  return (
+    <Form className="form-default" onSubmit={handleSubmit}>
+      <h2>{projectId ? "Edit Project" : "Create New Project"}</h2>
+      <Form.Group className="mb-3" controlId="nameProject">
+        <Form.Label>Project Name</Form.Label>
+        <Form.Control
+          type="text"
+          name="nameProject"
+          value={newProject.nameProject}
+          onChange={handleChange}
+          placeholder="Enter project name"
+        />
+      </Form.Group>
+
+      <Form.Group className="mb-3" controlId="description">
+        <Form.Label>Description</Form.Label>
+        <Form.Control
+          as="textarea"
+          name="description"
+          value={newProject.description}
+          onChange={handleChange}
+          rows={5}
+          placeholder="Enter Description"
+        />
+      </Form.Group>
+
+      <Form.Group className="mb-3" controlId="valuePerHour">
+        <Form.Label>Value Per Hour</Form.Label>
+        <Form.Control
+          type="number"
+          name="valuePerHour"
+          value={newProject.valuePerHour}
+          onChange={handleChange}
+          placeholder="Enter Value per hour"
+        />
+      </Form.Group>
+
+      <Button variant="primary" type="submit">
+        Submit
+      </Button>
+    </Form>
+  );
 }
