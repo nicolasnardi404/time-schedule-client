@@ -14,6 +14,7 @@ const calculateHours = (start, end) => {
 };
 
 const calculateTotalHours = (activities) => {
+  if (!activities || activities.length === 0) return "0.00";
   return activities
     .reduce((total, activity) => {
       return (
@@ -202,34 +203,40 @@ export default function Activities() {
             </tr>
           </thead>
           <tbody>
-            {activities.map((activity) => (
-              <tr key={activity.id}>
-                <td>{activity.description}</td>
-                <td>{new Date(activity.beginning).toLocaleString()}</td>
-                <td>{new Date(activity.end).toLocaleString()}</td>
-                <td>
-                  {calculateHours(activity.beginning, activity.end)} hours
-                </td>
-                <td>
-                  <div className="d-flex gap-2">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => handleEdit(activity)}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      onClick={() => handleDelete(activity.id)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </td>
+            {activities && activities.length > 0 ? (
+              activities.map((activity) => (
+                <tr key={activity.id}>
+                  <td>{activity.description}</td>
+                  <td>{new Date(activity.beginning).toLocaleString()}</td>
+                  <td>{new Date(activity.end).toLocaleString()}</td>
+                  <td>
+                    {calculateHours(activity.beginning, activity.end)} hours
+                  </td>
+                  <td>
+                    <div className="d-flex gap-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleEdit(activity)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => handleDelete(activity.id)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="5">No activities available</td>
               </tr>
-            ))}
+            )}
           </tbody>
           <tfoot>
             <tr className="table-info">

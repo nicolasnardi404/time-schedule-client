@@ -9,11 +9,12 @@ import LoginComponent from "./components/LoginComponent";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./App.css";
 import Register from "./pages/Register";
-import { AuthProvider } from "./context/AuthContext";
+import { AuthProvider, AuthContext } from "./context/AuthContext";
+import { useContext } from "react";
 
 const PrivateRoute = ({ children }) => {
-  const token = localStorage.getItem("token");
-  return token ? children : <Navigate to="/login" />;
+  const { isAuthenticated } = useContext(AuthContext);
+  return isAuthenticated ? children : <Navigate to="/login" replace />;
 };
 
 function App() {
