@@ -41,6 +41,7 @@ export default function Activities() {
   const [isEditing, setIsEditing] = useState(false);
   const [editingActivity, setEditingActivity] = useState(null);
   const [projectDetails, setProjectDetails] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const { projectId } = useParams();
   const { user } = useAuth();
@@ -56,6 +57,7 @@ export default function Activities() {
 
   const fetchActivities = async () => {
     try {
+      setIsLoading(true);
       const response = await axios.get(
         `http://localhost:8080/api/activities/project/${projectId}`,
         {
@@ -64,10 +66,24 @@ export default function Activities() {
           },
         }
       );
-      setActivities(response.data);
+
+      // Extract just the necessary activity data
+      const activitiesData = Array.isArray(response.data)
+        ? response.data.map((activity) => ({
+            id: activity.id,
+            description: activity.description,
+            beginning: activity.beginning,
+            end: activity.end,
+          }))
+        : [];
+
+      setActivities(activitiesData);
     } catch (error) {
+      console.error("GET activities error:", error.response?.status);
       setError("Failed to fetch activities");
-      console.error("Error:", error);
+      setActivities([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -90,56 +106,66 @@ export default function Activities() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const token = localStorage.getItem("token");
+      console.log("Token present:", !!token);
+      console.log("Token first 10 chars:", token?.substring(0, 10));
+
+      const formattedActivity = {
+        description: newActivity.description,
+        beginning: new Date(newActivity.beginning).toISOString(),
+        end: new Date(newActivity.end).toISOString(),
+      };
+
+      console.log("Sending activity data:", formattedActivity);
+      console.log("Project ID:", projectId);
+
       if (isEditing) {
         await axios.put(
           `http://localhost:8080/api/activities/${editingActivity.id}`,
-          {
-            ...newActivity,
-            projectId: parseInt(projectId),
-          },
+          formattedActivity,
           {
             headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
+              Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
           }
         );
-        setShowModal(false);
-        setNewActivity({
-          description: "",
-          beginning: "",
-          end: "",
-          projectId: projectId,
-        });
+      } else {
+        const response = await axios.post(
+          `http://localhost:8080/api/activities/project/${projectId}`,
+          formattedActivity,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        console.log("Server response:", response.data);
+      }
+
+      setShowModal(false);
+      setNewActivity({
+        description: "",
+        beginning: "",
+        end: "",
+        projectId: projectId,
+      });
+      if (isEditing) {
         setIsEditing(false);
         setEditingActivity(null);
-        fetchActivities();
-      } else {
-        await axios.post(
-          `http://localhost:8080/api/activities/project/${projectId}`,
-          {
-            ...newActivity,
-            projectId: parseInt(projectId),
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-        setShowModal(false);
-        setNewActivity({
-          description: "",
-          beginning: "",
-          end: "",
-          projectId: projectId,
-        });
-        fetchActivities();
       }
+      fetchActivities();
     } catch (error) {
-      setError("Failed to create activity");
-      console.error("Error:", error);
+      console.error("Full error object:", error);
+      console.error("Error response data:", error.response?.data);
+      console.error("Error status:", error.response?.status);
+      setError(
+        error.response?.data?.message ||
+          error.response?.data ||
+          error.message ||
+          "Failed to save activity"
+      );
     }
   };
 
@@ -203,7 +229,13 @@ export default function Activities() {
             </tr>
           </thead>
           <tbody>
-            {activities && activities.length > 0 ? (
+            {isLoading ? (
+              <tr>
+                <td colSpan="5" className="text-center">
+                  Loading...
+                </td>
+              </tr>
+            ) : activities && activities.length > 0 ? (
               activities.map((activity) => (
                 <tr key={activity.id}>
                   <td>{activity.description}</td>
@@ -234,7 +266,9 @@ export default function Activities() {
               ))
             ) : (
               <tr>
-                <td colSpan="5">No activities available</td>
+                <td colSpan="5" className="text-center">
+                  No activities available
+                </td>
               </tr>
             )}
           </tbody>
