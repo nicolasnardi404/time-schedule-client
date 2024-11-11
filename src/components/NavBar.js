@@ -1,6 +1,7 @@
 import Nav from "react-bootstrap/Nav";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
+import Button from "react-bootstrap/Button";
 
 export default function NavBar() {
   const { logout, isAuthenticated } = useAuth();
@@ -16,20 +17,21 @@ export default function NavBar() {
   };
 
   return (
-    <>
-      <Nav>
-        <Nav.Item>
-          <Nav.Link onClick={() => handleNavigation("/")}>Home</Nav.Link>
-        </Nav.Item>
-        <Nav.Item>
-          <Nav.Link onClick={() => handleNavigation("/add-project")}>
-            Add New Project
-          </Nav.Link>
-        </Nav.Item>
-        <Nav.Item>
-          <Nav.Link onClick={handleLogout}>Logout</Nav.Link>
-        </Nav.Item>
-      </Nav>
-    </>
+    <Nav className="nav">
+      <div className="d-flex gap-2">
+        <Nav.Link className="nav-link" onClick={() => handleNavigation("/")}>
+          Dashboard
+        </Nav.Link>
+        <Nav.Link
+          className="nav-link"
+          onClick={() => handleNavigation("/add-project")}
+        >
+          New Project
+        </Nav.Link>
+      </div>
+      <Button variant="outline-primary" onClick={handleLogout}>
+        Logout
+      </Button>
+    </Nav>
   );
 }

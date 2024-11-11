@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Form, Button, Container, Row, Col, Alert } from "react-bootstrap";
+import { Form, Button, Alert } from "react-bootstrap";
 import { useAuth } from "../context/AuthContext";
 
 export default function LoginComponent() {
@@ -37,41 +37,44 @@ export default function LoginComponent() {
   };
 
   return (
-    <Container>
-      <Row className="justify-content-center">
-        <Col md={6}>
-          <h1 className="text-center">Login</h1>
-          <Form onSubmit={handleSubmit}>
-            <Form.Group controlId="username">
-              <Form.Label>Username</Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="Enter username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
-            </Form.Group>
-            <Form.Group controlId="password">
-              <Form.Label>Password</Form.Label>
-              <Form.Control
-                type="password"
-                placeholder="Enter password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </Form.Group>
-            <div className="d-flex gap-2 mt-3">
-              <Button variant="primary" type="submit">
-                Login
-              </Button>
-              <Button variant="secondary" onClick={() => navigate("/register")}>
-                Register
-              </Button>
-            </div>
-          </Form>
-          {error && <Alert variant="danger">{error}</Alert>}
-        </Col>
-      </Row>
-    </Container>
+    <div className="auth-container">
+      <div className="auth-form">
+        <h2>Welcome Back</h2>
+        <Form onSubmit={handleSubmit}>
+          <Form.Group className="mb-4">
+            <Form.Label>Username</Form.Label>
+            <Form.Control
+              type="text"
+              placeholder="Enter your username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+          </Form.Group>
+          <Form.Group className="mb-4">
+            <Form.Label>Password</Form.Label>
+            <Form.Control
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </Form.Group>
+          <Button variant="primary" type="submit" className="w-100 mb-3">
+            Login
+          </Button>
+          <div className="text-center">
+            <span className="text-secondary">Don't have an account? </span>
+            <Button variant="link" onClick={() => navigate("/register")}>
+              Register
+            </Button>
+          </div>
+        </Form>
+        {error && (
+          <Alert variant="danger" className="mt-3">
+            {error}
+          </Alert>
+        )}
+      </div>
+    </div>
   );
 }
