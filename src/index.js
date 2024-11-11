@@ -2,7 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import Home from "./pages/Home";
+import Projects from "./pages/Projects";
 import AddProject from "./pages/AddProject";
 import Activities from "./pages/Activities";
 import LoginComponent from "./components/LoginComponent";
@@ -26,7 +26,7 @@ function App() {
             path="/"
             element={
               <PrivateRoute>
-                <Home />
+                <Projects />
               </PrivateRoute>
             }
           />

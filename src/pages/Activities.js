@@ -42,6 +42,8 @@ export default function Activities() {
   const [editingActivity, setEditingActivity] = useState(null);
   const [projectDetails, setProjectDetails] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [activityToDelete, setActivityToDelete] = useState(null);
 
   const { projectId } = useParams();
   const { user } = useAuth();
@@ -190,13 +192,22 @@ export default function Activities() {
   };
 
   const handleDelete = async (activityId) => {
+    setActivityToDelete(activityId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
     try {
-      await axios.delete(`http://localhost:8080/api/activities/${activityId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
+      await axios.delete(
+        `http://localhost:8080/api/activities/${activityToDelete}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
       fetchActivities();
+      setShowDeleteModal(false);
     } catch (error) {
       setError("Failed to delete activity");
       console.error("Error:", error);
@@ -357,6 +368,26 @@ export default function Activities() {
               </div>
             </Form>
           </Modal.Body>
+        </Modal>
+
+        <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
+          <Modal.Header closeButton>
+            <Modal.Title>Confirm Delete</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            Are you sure you want to delete this activity?
+          </Modal.Body>
+          <Modal.Footer>
+            <Button
+              variant="secondary"
+              onClick={() => setShowDeleteModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={confirmDelete}>
+              Delete
+            </Button>
+          </Modal.Footer>
         </Modal>
       </Container>
     </>
