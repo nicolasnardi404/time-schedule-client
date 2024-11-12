@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Button, Container, Table, Modal, Alert } from "react-bootstrap";
+import { Button, Container, Alert, Modal, Dropdown, DropdownButton } from "react-bootstrap";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import NavBar from "../components/NavBar";
@@ -129,69 +129,76 @@ export default function Projects() {
           </Button>
         </div>
 
-        <Table striped bordered hover responsive>
-          <thead>
-            <div className="search-nav-div">
-              <form onSubmit={handleSearch} className="search-nav">
-                <input className="form-control mr-sm-2" type="text" placeholder="Search" aria-label="Search"/>
-                <button className="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
-              </form>
-            </div>
-            <tr>
-              <th>Project</th>
-              <th>Description</th>
-              <th>Created at</th>
-              <th>Value per Hour</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {projects.length > 0 ? (
-              projects.map((project) => (
-                <tr key={project.id}>
-                  <td>{project.nameProject || "-"}</td>
-                  <td>{project.description || "-"}</td>
-                  <td>{new Date(project.creationDate).toLocaleString()}</td>
-                  <td>${project.valuePerHour || "-"}</td>
-                  <td>
-                    <div className="d-flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() =>
-                          navigate(`/project/${project.id}/activities`)
-                        }
+        <form onSubmit={handleSearch} className="mb-4">
+          <div className="input-group">
+            <input 
+              className="form-control" 
+              type="text" 
+              placeholder="Search projects..." 
+              aria-label="Search"
+            />
+            <button className="btn btn-outline-success" type="submit">
+              Search
+            </button>
+          </div>
+        </form>
+
+        <div className="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+          {projects.length > 0 ? (
+            projects.map((project) => (
+              <div key={project.id} className="col">
+                <div className="card h-100 shadow-sm border-0">
+                  <div className="card-body d-flex flex-column">
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                      <h5 className="card-title mb-0">{project.nameProject || "-"}</h5>
+                      <Dropdown>
+                        <Dropdown.Toggle 
+                          variant="link" 
+                          id={`dropdown-${project.id}`} 
+                          className="text-muted p-0" 
+                          style={{ fontSize: '1.2rem', lineHeight: '1' }}
+                        >
+                          ...
+                        </Dropdown.Toggle>
+                        <Dropdown.Menu>
+                          <Dropdown.Item onClick={() => navigate(`/update-project/${project.id}`)}>
+                            Edit
+                          </Dropdown.Item>
+                          <Dropdown.Item onClick={() => handleDelete(project.id)}>
+                            Delete
+                          </Dropdown.Item>
+                        </Dropdown.Menu>
+                      </Dropdown>
+                    </div>
+                    <p className="card-text text-muted">{project.description || "-"}</p>
+                    <div className="mt-auto">
+                      <div className="d-flex justify-content-between align-items-center mb-2">
+                        <small className="text-muted">
+                          Created: {new Date(project.creationDate).toLocaleString()}
+                        </small>
+                        <span className="badge bg-primary">
+                          ${project.valuePerHour || "-"}/hr
+                        </span>
+                      </div>
+                      <Button 
+                        variant="outline-primary" 
+                        size="sm" 
+                        onClick={() => navigate(`/project/${project.id}/activities`)}
+                        className="w-100"
                       >
                         Activities
                       </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() =>
-                          navigate(`/update-project/${project.id}`)
-                        }
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => handleDelete(project.id)}
-                      >
-                        Delete
-                      </Button>
                     </div>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="5" className="text-center">
-                  No projects found
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </Table>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="col-12 text-center">
+              <p className="text-muted">No projects found</p>
+            </div>
+          )}
+        </div>
 
         {projects.length > 0 && (
           <>

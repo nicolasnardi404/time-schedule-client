@@ -7,19 +7,6 @@ import NavBar from "../components/NavBar";
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
-<style>
-  {`
-    .btn-ellipsis {
-      padding: 0 0.5rem;
-      font-weight: bold;
-      font-size: 1.2rem;
-      line-height: 1;
-    }
-    .btn-ellipsis::after {
-      display: none;
-    }
-  `}
-</style>
 
 const calculateHours = (start, end) => {
   const startDate = new Date(start);
@@ -414,141 +401,151 @@ export default function Activities() {
         {isLoading ? (
           <div className="text-center">Loading...</div>
         ) : activities.length > 0 ? (
-          Object.entries(organizeActivitiesByMonth(activities)).map(([monthYear, monthActivities]) => (
-            <div key={monthYear} className="mb-5">
-              <h3>{monthYear}</h3>
-              <Table striped bordered hover>
-                <thead>
-                  <tr>
-                    <th>Description</th>
-                    <th>Start Time</th>
-                    <th>End Time</th>
-                    <th>Total Hours</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
+          Object.entries(organizeActivitiesByMonth(activities)).map(([monthYear, monthActivities]) => {
+            // Extract month and year for the close month function
+            const date = new Date(monthActivities[0].beginning);
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1; // JavaScript months are 0-based
+
+            return (
+              <div key={monthYear} className="mb-5">
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <h3>{monthYear}</h3>
+                  <div className="d-flex gap-2">
+                    <Button 
+                      variant="warning"
+                      onClick={() => handleCloseMonth(year, month)}
+                    >
+                      Close Month
+                    </Button>
+                    <Button 
+                      variant="primary"
+                      onClick={() => handleGeneratePdf(monthActivities, monthYear)}
+                    >
+                      Generate PDF
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Monthly totals */}
+                <div className="card mb-3">
+                  <div className="card-body">
+                    <div className="row g-3">
+                      {filterStatus === 'all' ? (
+                        <>
+                          <div className="col-md-3">
+                            <div className="d-flex justify-content-between">
+                              <span>Total Hours:</span>
+                              <strong>{calculateTotalHours(monthActivities)} hours</strong>
+                            </div>
+                          </div>
+                          <div className="col-md-3">
+                            <div className="d-flex justify-content-between">
+                              <span>Open Value:</span>
+                              <strong>${calculateTotalValue(
+                                calculateTotalHours(monthActivities.filter(a => !a.isClosed)),
+                                projectDetails?.valuePerHour || 0
+                              )}</strong>
+                            </div>
+                          </div>
+                          <div className="col-md-3">
+                            <div className="d-flex justify-content-between">
+                              <span>Closed Value:</span>
+                              <strong>${calculateTotalValue(
+                                calculateTotalHours(monthActivities.filter(a => a.isClosed)),
+                                projectDetails?.valuePerHour || 0
+                              )}</strong>
+                            </div>
+                          </div>
+                          <div className="col-md-3">
+                            <div className="d-flex justify-content-between">
+                              <span>Total Value:</span>
+                              <strong>${calculateTotalValue(
+                                calculateTotalHours(monthActivities),
+                                projectDetails?.valuePerHour || 0
+                              )}</strong>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="col-md-6">
+                            <div className="d-flex justify-content-between">
+                              <span>Total Hours:</span>
+                              <strong>{calculateTotalHours(monthActivities)} hours</strong>
+                            </div>
+                          </div>
+                          <div className="col-md-6">
+                            <div className="d-flex justify-content-between">
+                              <span>Total Value:</span>
+                              <strong>${calculateTotalValue(
+                                calculateTotalHours(monthActivities),
+                                projectDetails?.valuePerHour || 0
+                              )}</strong>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mb-4">
                   {monthActivities.map((activity) => (
-                    <tr key={activity.id}>
-                      <td>{activity.description}</td>
-                      <td>{new Date(activity.beginning).toLocaleString()}</td>
-                      <td>{new Date(activity.end).toLocaleString()}</td>
-                      <td>{calculateHours(activity.beginning, activity.end)}</td>
-                      <td>
-                        <span className={`badge ${activity.isClosed ? 'bg-success' : 'bg-warning'}`}>
-                          {activity.isClosed ? 'Closed' : 'Open'}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="d-flex gap-2">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => handleEdit(activity)}
-                            disabled={activity.isClosed}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            variant="danger"
-                            size="sm"
-                            onClick={() => handleDelete(activity.id)}
-                            disabled={activity.isClosed}
-                          >
-                            Delete
-                          </Button>
-                          <Dropdown>
-                            <Dropdown.Toggle 
-                              variant="light" 
-                              size="sm" 
-                              id={`dropdown-${activity.id}`}
-                              className="btn-ellipsis"
-                            >
-                              ...
-                            </Dropdown.Toggle>
-                            <Dropdown.Menu>
-                              <Dropdown.Item 
+                    <div key={activity.id} className="mb-2">
+                      <div className={`card shadow-sm ${activity.isClosed ? 'border-success' : 'border-warning'}`}>
+                        <div className="card-body py-2">
+                          <div className="d-flex justify-content-between align-items-center">
+                            <div className="d-flex align-items-center flex-grow-1 gap-3">
+                              <h6 className="mb-0" style={{ minWidth: '200px' }}>{activity.description}</h6>
+                              <small className="text-muted">
+                                <i className="far fa-clock me-1"></i>
+                                {new Date(activity.beginning).toLocaleString()}
+                              </small>
+                              <small className="text-muted">
+                                <i className="far fa-clock me-1"></i>
+                                {new Date(activity.end).toLocaleString()}
+                              </small>
+                              <span className="badge bg-primary">{calculateHours(activity.beginning, activity.end)}h</span>
+                              <span className={`badge ${activity.isClosed ? 'bg-success' : 'bg-warning'}`}>
+                                {activity.isClosed ? 'Closed' : 'Open'}
+                              </span>
+                            </div>
+                            
+                            <div className="d-flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline-primary"
+                                onClick={() => handleEdit(activity)}
+                                disabled={activity.isClosed}
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline-danger"
+                                onClick={() => handleDelete(activity.id)}
+                                disabled={activity.isClosed}
+                              >
+                                Delete
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant={activity.isClosed ? "outline-success" : "outline-warning"}
                                 onClick={() => handleToggleStatus(activity.id)}
                               >
-                                {activity.isClosed ? "Reopen Activity" : "Close Activity"}
-                              </Dropdown.Item>
-                            </Dropdown.Menu>
-                          </Dropdown>
+                                {activity.isClosed ? "Reopen" : "Close"}
+                              </Button>
+                            </div>
+                          </div>
                         </div>
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                   ))}
-
-                  {filterStatus === 'all' ? (
-                    <>
-                      <tr className="table-info">
-                        <td colSpan="2" className="text-end fw-bold">
-                          Open Activities Total Value:
-                        </td>
-                        <td className="fw-bold">
-                          ${calculateTotalValue(
-                            calculateTotalHours(monthActivities.filter(a => !a.isClosed)),
-                            projectDetails?.valuePerHour || 0
-                          )}
-                        </td>
-                        <td colSpan="2" className="text-end fw-bold">
-                          Closed Activities Total Value:
-                        </td>
-                        <td className="fw-bold">
-                          ${calculateTotalValue(
-                            calculateTotalHours(monthActivities.filter(a => a.isClosed)),
-                            projectDetails?.valuePerHour || 0
-                          )}
-                        </td>
-                      </tr>
-                      <tr className="table-primary">
-                        <td colSpan="2" className="text-end fw-bold">
-                          Month Total Hours:
-                        </td>
-                        <td className="fw-bold">
-                          {calculateTotalHours(monthActivities)} hours
-                        </td>
-                        <td colSpan="2" className="text-end fw-bold">
-                          Month Total Value:
-                        </td>
-                        <td className="fw-bold">
-                          ${calculateTotalValue(
-                            calculateTotalHours(monthActivities),
-                            projectDetails?.valuePerHour || 0
-                          )}
-                        </td>
-                      </tr>
-                    </>
-                  ) : (
-                    <tr className="table-primary">
-                      <td colSpan="2" className="text-end fw-bold">
-                        Total Hours:
-                      </td>
-                      <td className="fw-bold">
-                        {calculateTotalHours(monthActivities)} hours
-                      </td>
-                      <td colSpan="2" className="text-end fw-bold">
-                        Total Value:
-                      </td>
-                      <td className="fw-bold">
-                        ${calculateTotalValue(
-                          calculateTotalHours(monthActivities),
-                          projectDetails?.valuePerHour || 0
-                        )}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </Table>
-              <Button 
-                variant="primary"
-                onClick={() => handleGeneratePdf(monthActivities, monthYear)}
-              >
-                Generate PDF
-              </Button>
-            </div>
-          ))
+                </div>
+              </div>
+            );
+          })
         ) : (
           <div className="text-center">No activities available</div>
         )}
