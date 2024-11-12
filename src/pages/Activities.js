@@ -4,6 +4,8 @@ import { useAuth } from "../context/AuthContext";
 import axios from "axios";
 import { Button, Table, Modal, Form, Container, Alert } from "react-bootstrap";
 import NavBar from "../components/NavBar";
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 const calculateHours = (start, end) => {
   const startDate = new Date(start);
@@ -26,6 +28,47 @@ const calculateTotalHours = (activities) => {
 
 const calculateTotalValue = (totalHours, valuePerHour) => {
   return (parseFloat(totalHours) * parseFloat(valuePerHour)).toFixed(2);
+};
+
+const generatePdf = (monthActivities, monthYear, projectDetails) => {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.width;
+  
+  // Add title
+  doc.setFontSize(16);
+  doc.text(`Activities Report - ${monthYear}`, pageWidth/2, 20, { align: 'center' });
+  
+  // Add project details
+  doc.setFontSize(12);
+  doc.text(`Project: ${projectDetails?.name || 'N/A'}`, 20, 40);
+  doc.text(`Value per Hour: $${projectDetails?.valuePerHour || '0'}`, 20, 50);
+  
+  // Add activities table
+  let yPos = 70;
+  const headers = ['Description', 'Start Time', 'End Time', 'Hours'];
+  const data = monthActivities.map(activity => [
+    activity.description,
+    new Date(activity.beginning).toLocaleString(),
+    new Date(activity.end).toLocaleString(),
+    calculateHours(activity.beginning, activity.end)
+  ]);
+  
+  // Add total
+  const totalHours = calculateTotalHours(monthActivities);
+  const totalValue = calculateTotalValue(totalHours, projectDetails?.valuePerHour || 0);
+  
+  doc.autoTable({
+    startY: yPos,
+    head: [headers],
+    body: data,
+    foot: [['Total', '', '', `${totalHours} hours`]],
+    theme: 'grid'
+  });
+  
+  doc.text(`Total Value: $${totalValue}`, 20, doc.lastAutoTable.finalY + 20);
+  
+  // Save the PDF
+  doc.save(`activities-${monthYear}.pdf`);
 };
 
 export default function Activities() {
@@ -76,6 +119,7 @@ export default function Activities() {
             description: activity.description,
             beginning: activity.beginning,
             end: activity.end,
+            isClosed: activity.closed
           }))
         : [];
 
@@ -214,6 +258,43 @@ export default function Activities() {
     }
   };
 
+  const organizeActivitiesByMonth = (activities) => {
+    if (!activities) return {};
+    
+    return activities.reduce((acc, activity) => {
+      const date = new Date(activity.beginning);
+      const monthYear = `${date.toLocaleString('default', { month: 'long' })} ${date.getFullYear()}`;
+      
+      if (!acc[monthYear]) {
+        acc[monthYear] = [];
+      }
+      acc[monthYear].push(activity);
+      return acc;
+    }, {});
+  };
+
+  const handleCloseMonth = async (year, month) => {
+    try {
+      await axios.put(
+        `http://localhost:8080/api/activities/project/${projectId}/close-month?year=${year}&month=${month}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      fetchActivities();
+    } catch (error) {
+      setError("Failed to close activities for the month");
+      console.error("Error:", error);
+    }
+  };
+
+  const handleGeneratePdf = (monthActivities, monthYear) => {
+    generatePdf(monthActivities, monthYear, projectDetails);
+  };
+
   return (
     <>
       <NavBar />
@@ -229,71 +310,95 @@ export default function Activities() {
           </Alert>
         )}
 
-        <Table striped bordered hover>
-          <thead>
-            <tr>
-              <th>Description</th>
-              <th>Start Time</th>
-              <th>End Time</th>
-              <th>Total Hours</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr>
-                <td colSpan="5" className="text-center">
-                  Loading...
-                </td>
-              </tr>
-            ) : activities && activities.length > 0 ? (
-              activities.map((activity) => (
-                <tr key={activity.id}>
-                  <td>{activity.description}</td>
-                  <td>{new Date(activity.beginning).toLocaleString()}</td>
-                  <td>{new Date(activity.end).toLocaleString()}</td>
-                  <td>
-                    {calculateHours(activity.beginning, activity.end)} hours
-                  </td>
-                  <td>
-                    <div className="d-flex gap-2">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handleEdit(activity)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => handleDelete(activity.id)}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="5" className="text-center">
-                  No activities available
-                </td>
-              </tr>
-            )}
-          </tbody>
-          <tfoot>
-            <tr className="table-info">
-              <td colSpan="3" className="text-end fw-bold">
-                Total Project Hours:
-              </td>
-              <td colSpan="2" className="fw-bold">
-                {calculateTotalHours(activities)} hours
-              </td>
-            </tr>
-          </tfoot>
-        </Table>
+        {isLoading ? (
+          <div className="text-center">Loading...</div>
+        ) : activities && activities.length > 0 ? (
+          Object.entries(organizeActivitiesByMonth(activities)).map(([monthYear, monthActivities]) => {
+            const [monthName, yearStr] = monthYear.split(' ');
+            const year = parseInt(yearStr);
+            const month = new Date(Date.parse(monthName + " 1, 2000")).getMonth() + 1;
+            
+            const allClosed = monthActivities.every(activity => activity.isClosed);
+
+            return (
+              <div key={monthYear} className="mb-5">
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <h3>{monthYear}</h3>
+                  <Button 
+                    variant={allClosed ? "success" : "warning"}
+                    onClick={() => handleCloseMonth(year, month)}
+                    disabled={allClosed}
+                  >
+                    {allClosed ? "Month Closed" : "Close Month"}
+                  </Button>
+                </div>
+                <Table striped bordered hover>
+                  <thead>
+                    <tr>
+                      <th>Description</th>
+                      <th>Start Time</th>
+                      <th>End Time</th>
+                      <th>Total Hours</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {monthActivities.map((activity) => (
+                      <tr key={activity.id} className={activity.isClosed ? 'table-secondary' : ''}>
+                        <td>{activity.description}</td>
+                        <td>{new Date(activity.beginning).toLocaleString()}</td>
+                        <td>{new Date(activity.end).toLocaleString()}</td>
+                        <td>{calculateHours(activity.beginning, activity.end)} hours</td>
+                        <td>
+                          <span className={`badge ${activity.isClosed ? 'bg-success' : 'bg-warning'}`}>
+                            {activity.isClosed ? 'Closed' : 'Open'}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="d-flex gap-2">
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => handleEdit(activity)}
+                              disabled={activity.isClosed}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              onClick={() => handleDelete(activity.id)}
+                              disabled={activity.isClosed}
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    <tr className="table-info">
+                      <td colSpan="3" className="text-end fw-bold">
+                        Total Hours for {monthYear}:
+                      </td>
+                      <td colSpan="3" className="fw-bold">
+                        {calculateTotalHours(monthActivities)} hours
+                      </td>
+                    </tr>
+                  </tbody>
+                </Table>
+                <Button 
+                  variant="primary"
+                  onClick={() => handleGeneratePdf(monthActivities, monthYear)}
+                >
+                  Generate PDF
+                </Button>
+              </div>
+            );
+          })
+        ) : (
+          <div className="text-center">No activities available</div>
+        )}
 
         {projectDetails && (
           <div className="mt-4 p-3 bg-light rounded">
