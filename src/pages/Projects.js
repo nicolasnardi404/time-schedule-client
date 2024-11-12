@@ -37,7 +37,7 @@ export default function Projects() {
       const totalPages = Math.ceil(response.data.totalCount / 10); // Assuming 10 projects per page
       setCurrentPage(Math.min(currentPage, totalPages)); // Ensure currentPage doesn't exceed totalPages
     } catch (error) {
-      setError("Failed to fetch projects");
+
       console.error("Error:", error);
     }
   };
@@ -56,6 +56,28 @@ export default function Projects() {
     } catch (error) {
       console.error('Error fetching total projects:', error);
       setTotalProjects(0);
+    }
+  };
+
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    const searchTerm = e.target.querySelector('input').value;
+    
+    try {
+      const response = await axios.get(
+        `http://localhost:8080/api/project/${user.id}/search`,
+        {
+          params: { searchTerm },
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      
+      setProjects(response.data);
+    } catch (error) {
+      setError("Failed to perform search");
+      console.error("Error:", error);
     }
   };
 
@@ -109,6 +131,12 @@ export default function Projects() {
 
         <Table striped bordered hover responsive>
           <thead>
+            <div className="search-nav-div">
+              <form onSubmit={handleSearch} className="search-nav">
+                <input className="form-control mr-sm-2" type="text" placeholder="Search" aria-label="Search"/>
+                <button className="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+              </form>
+            </div>
             <tr>
               <th>Project</th>
               <th>Description</th>
