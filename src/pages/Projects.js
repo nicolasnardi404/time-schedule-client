@@ -39,6 +39,28 @@ export default function Projects() {
     setShowDeleteModal(true);
   };
 
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    const searchTerm = e.target.querySelector('input').value;
+    
+    try {
+      const response = await axios.get(
+        `http://localhost:8080/api/project/${user.id}/search`,
+        {
+          params: { searchTerm },
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      
+      setProjects(response.data);
+    } catch (error) {
+      setError("Failed to perform search");
+      console.error("Error:", error);
+    }
+  };
+  
   const confirmDelete = async () => {
     try {
       await axios.delete(
@@ -76,6 +98,12 @@ export default function Projects() {
 
         <Table striped bordered hover responsive>
           <thead>
+            <nav className="navbar navbar-light bg-light mb-4">
+              <form onSubmit={handleSearch} className="form-inline">
+                <input className="form-control mr-sm-2" type="text" placeholder="Search" aria-label="Search"/>
+                <button className="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+              </form>
+            </nav>
             <tr>
               <th>Project</th>
               <th>Description</th>
