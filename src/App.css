@@ -220,6 +220,20 @@ body {
   color: white;
 }
 
+.btn-ellipsis {
+  padding: 0 0.5rem;
+  font-weight: bold;
+  font-size: 1rem;
+  min-width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+}
+
+.btn-ellipsis::after {
+  display: none;
+}
+
 
 
 @media (max-width: 768px) {

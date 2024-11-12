@@ -2,10 +2,24 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
-import { Button, Table, Modal, Form, Container, Alert } from "react-bootstrap";
+import { Button, Table, Modal, Form, Container, Alert, ButtonGroup, Dropdown } from "react-bootstrap";
 import NavBar from "../components/NavBar";
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+
+<style>
+  {`
+    .btn-ellipsis {
+      padding: 0 0.5rem;
+      font-weight: bold;
+      font-size: 1.2rem;
+      line-height: 1;
+    }
+    .btn-ellipsis::after {
+      display: none;
+    }
+  `}
+</style>
 
 const calculateHours = (start, end) => {
   const startDate = new Date(start);
@@ -87,6 +101,12 @@ export default function Activities() {
   const [isLoading, setIsLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [activityToDelete, setActivityToDelete] = useState(null);
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [activityCounts, setActivityCounts] = useState({
+    all: 0,
+    open: 0,
+    closed: 0
+  });
 
   const { projectId } = useParams();
   const { user } = useAuth();
@@ -100,19 +120,59 @@ export default function Activities() {
     }
   }, [projectId]);
 
+  useEffect(() => {
+    if (projectId) {
+      fetchActivityCounts();
+    }
+  }, [projectId]);
+
+  useEffect(() => {
+    if (projectId) {
+      fetchActivities();
+    }
+  }, [filterStatus, projectId]);
+
+  const fetchActivityCounts = async () => {
+    try {
+      const [allResponse, openResponse, closedResponse] = await Promise.all([
+        axios.get(`http://localhost:8080/api/activities/project/${projectId}`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        }),
+        axios.get(`http://localhost:8080/api/activities/project/${projectId}/open`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        }),
+        axios.get(`http://localhost:8080/api/activities/project/${projectId}/closed`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        })
+      ]);
+
+      setActivityCounts({
+        all: allResponse.data.length,
+        open: openResponse.data.length,
+        closed: closedResponse.data.length
+      });
+    } catch (error) {
+      console.error("Error fetching activity counts:", error);
+    }
+  };
+
   const fetchActivities = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.get(
-        `http://localhost:8080/api/activities/project/${projectId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
+      let endpoint = `http://localhost:8080/api/activities/project/${projectId}`;
+      
+      if (filterStatus === 'open') {
+        endpoint += '/open';
+      } else if (filterStatus === 'closed') {
+        endpoint += '/closed';
+      }
 
-      // Extract just the necessary activity data
+      const response = await axios.get(endpoint, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
       const activitiesData = Array.isArray(response.data)
         ? response.data.map((activity) => ({
             id: activity.id,
@@ -295,136 +355,202 @@ export default function Activities() {
     generatePdf(monthActivities, monthYear, projectDetails);
   };
 
+  // Add this new function to handle toggling activity status
+  const handleToggleStatus = async (activityId) => {
+    try {
+      await axios.put(
+        `http://localhost:8080/api/activities/${activityId}/toggle-status`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      fetchActivities();
+      fetchActivityCounts(); // Refresh the counts after toggling
+    } catch (error) {
+      setError("Failed to update activity status");
+      console.error("Error:", error);
+    }
+  };
+
   return (
     <>
       <NavBar />
       <Container className="mt-4">
         <div className="d-flex justify-content-between align-items-center mb-4">
           <h2>Activities</h2>
-          <Button onClick={() => setShowModal(true)}>Add Activity</Button>
+          <div className="d-flex gap-2">
+            <Button onClick={() => setShowModal(true)}>Add Activity</Button>
+          </div>
         </div>
 
-        {error && (
-          <Alert variant="danger" className="mb-4">
-            {error}
-          </Alert>
-        )}
+        <div className="mb-4">
+          <ButtonGroup>
+            <Button
+              variant={filterStatus === 'all' ? 'primary' : 'outline-primary'}
+              onClick={() => setFilterStatus('all')}
+            >
+              All Activities ({activityCounts.all})
+            </Button>
+            <Button
+              variant={filterStatus === 'open' ? 'primary' : 'outline-primary'}
+              onClick={() => setFilterStatus('open')}
+            >
+              Open Activities ({activityCounts.open})
+            </Button>
+            <Button
+              variant={filterStatus === 'closed' ? 'primary' : 'outline-primary'}
+              onClick={() => setFilterStatus('closed')}
+            >
+              Closed Activities ({activityCounts.closed})
+            </Button>
+          </ButtonGroup>
+        </div>
+
+        {error && <Alert variant="danger">{error}</Alert>}
 
         {isLoading ? (
           <div className="text-center">Loading...</div>
-        ) : activities && activities.length > 0 ? (
-          Object.entries(organizeActivitiesByMonth(activities)).map(([monthYear, monthActivities]) => {
-            const [monthName, yearStr] = monthYear.split(' ');
-            const year = parseInt(yearStr);
-            const month = new Date(Date.parse(monthName + " 1, 2000")).getMonth() + 1;
-            
-            const allClosed = monthActivities.every(activity => activity.isClosed);
-
-            return (
-              <div key={monthYear} className="mb-5">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h3>{monthYear}</h3>
-                  <Button 
-                    variant={allClosed ? "success" : "warning"}
-                    onClick={() => handleCloseMonth(year, month)}
-                    disabled={allClosed}
-                  >
-                    {allClosed ? "Month Closed" : "Close Month"}
-                  </Button>
-                </div>
-                <Table striped bordered hover>
-                  <thead>
-                    <tr>
-                      <th>Description</th>
-                      <th>Start Time</th>
-                      <th>End Time</th>
-                      <th>Total Hours</th>
-                      <th>Status</th>
-                      <th>Actions</th>
+        ) : activities.length > 0 ? (
+          Object.entries(organizeActivitiesByMonth(activities)).map(([monthYear, monthActivities]) => (
+            <div key={monthYear} className="mb-5">
+              <h3>{monthYear}</h3>
+              <Table striped bordered hover>
+                <thead>
+                  <tr>
+                    <th>Description</th>
+                    <th>Start Time</th>
+                    <th>End Time</th>
+                    <th>Total Hours</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {monthActivities.map((activity) => (
+                    <tr key={activity.id}>
+                      <td>{activity.description}</td>
+                      <td>{new Date(activity.beginning).toLocaleString()}</td>
+                      <td>{new Date(activity.end).toLocaleString()}</td>
+                      <td>{calculateHours(activity.beginning, activity.end)}</td>
+                      <td>
+                        <span className={`badge ${activity.isClosed ? 'bg-success' : 'bg-warning'}`}>
+                          {activity.isClosed ? 'Closed' : 'Open'}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="d-flex gap-2">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleEdit(activity)}
+                            disabled={activity.isClosed}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={() => handleDelete(activity.id)}
+                            disabled={activity.isClosed}
+                          >
+                            Delete
+                          </Button>
+                          <Dropdown>
+                            <Dropdown.Toggle 
+                              variant="light" 
+                              size="sm" 
+                              id={`dropdown-${activity.id}`}
+                              className="btn-ellipsis"
+                            >
+                              ...
+                            </Dropdown.Toggle>
+                            <Dropdown.Menu>
+                              <Dropdown.Item 
+                                onClick={() => handleToggleStatus(activity.id)}
+                              >
+                                {activity.isClosed ? "Reopen Activity" : "Close Activity"}
+                              </Dropdown.Item>
+                            </Dropdown.Menu>
+                          </Dropdown>
+                        </div>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {monthActivities.map((activity) => (
-                      <tr key={activity.id} className={activity.isClosed ? 'table-secondary' : ''}>
-                        <td>{activity.description}</td>
-                        <td>{new Date(activity.beginning).toLocaleString()}</td>
-                        <td>{new Date(activity.end).toLocaleString()}</td>
-                        <td>{calculateHours(activity.beginning, activity.end)} hours</td>
-                        <td>
-                          <span className={`badge ${activity.isClosed ? 'bg-success' : 'bg-warning'}`}>
-                            {activity.isClosed ? 'Closed' : 'Open'}
-                          </span>
+                  ))}
+
+                  {filterStatus === 'all' ? (
+                    <>
+                      <tr className="table-info">
+                        <td colSpan="2" className="text-end fw-bold">
+                          Open Activities Total Value:
                         </td>
-                        <td>
-                          <div className="d-flex gap-2">
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => handleEdit(activity)}
-                              disabled={activity.isClosed}
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              variant="danger"
-                              size="sm"
-                              onClick={() => handleDelete(activity.id)}
-                              disabled={activity.isClosed}
-                            >
-                              Delete
-                            </Button>
-                          </div>
+                        <td className="fw-bold">
+                          ${calculateTotalValue(
+                            calculateTotalHours(monthActivities.filter(a => !a.isClosed)),
+                            projectDetails?.valuePerHour || 0
+                          )}
+                        </td>
+                        <td colSpan="2" className="text-end fw-bold">
+                          Closed Activities Total Value:
+                        </td>
+                        <td className="fw-bold">
+                          ${calculateTotalValue(
+                            calculateTotalHours(monthActivities.filter(a => a.isClosed)),
+                            projectDetails?.valuePerHour || 0
+                          )}
                         </td>
                       </tr>
-                    ))}
-                    <tr className="table-info">
-                      <td colSpan="3" className="text-end fw-bold">
-                        Total Hours for {monthYear}:
+                      <tr className="table-primary">
+                        <td colSpan="2" className="text-end fw-bold">
+                          Month Total Hours:
+                        </td>
+                        <td className="fw-bold">
+                          {calculateTotalHours(monthActivities)} hours
+                        </td>
+                        <td colSpan="2" className="text-end fw-bold">
+                          Month Total Value:
+                        </td>
+                        <td className="fw-bold">
+                          ${calculateTotalValue(
+                            calculateTotalHours(monthActivities),
+                            projectDetails?.valuePerHour || 0
+                          )}
+                        </td>
+                      </tr>
+                    </>
+                  ) : (
+                    <tr className="table-primary">
+                      <td colSpan="2" className="text-end fw-bold">
+                        Total Hours:
                       </td>
-                      <td colSpan="3" className="fw-bold">
+                      <td className="fw-bold">
                         {calculateTotalHours(monthActivities)} hours
                       </td>
+                      <td colSpan="2" className="text-end fw-bold">
+                        Total Value:
+                      </td>
+                      <td className="fw-bold">
+                        ${calculateTotalValue(
+                          calculateTotalHours(monthActivities),
+                          projectDetails?.valuePerHour || 0
+                        )}
+                      </td>
                     </tr>
-                  </tbody>
-                </Table>
-                <Button 
-                  variant="primary"
-                  onClick={() => handleGeneratePdf(monthActivities, monthYear)}
-                >
-                  Generate PDF
-                </Button>
-              </div>
-            );
-          })
+                  )}
+                </tbody>
+              </Table>
+              <Button 
+                variant="primary"
+                onClick={() => handleGeneratePdf(monthActivities, monthYear)}
+              >
+                Generate PDF
+              </Button>
+            </div>
+          ))
         ) : (
           <div className="text-center">No activities available</div>
-        )}
-
-        {projectDetails && (
-          <div className="mt-4 p-3 bg-light rounded">
-            <h4>Project Summary</h4>
-            <div className="d-flex justify-content-between align-items-center">
-              <div>
-                <p className="mb-1">
-                  <strong>Value per Hour:</strong> $
-                  {projectDetails.valuePerHour}
-                </p>
-                <p className="mb-1">
-                  <strong>Total Hours:</strong>{" "}
-                  {calculateTotalHours(activities)}
-                </p>
-              </div>
-              <div>
-                <h5 className="text-primary">
-                  Total Project Value: $
-                  {calculateTotalValue(
-                    calculateTotalHours(activities),
-                    projectDetails.valuePerHour
-                  )}
-                </h5>
-              </div>
-            </div>
-          </div>
         )}
 
         <Modal show={showModal} onHide={() => setShowModal(false)}>
