@@ -183,6 +183,45 @@ body {
   padding: 2rem;
 }
 
+.search-nav{
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto;
+  gap:20px;
+  text-align: center;
+}
+
+.search-nav-div{
+ margin: 20px 10px;
+}
+
+.pagination {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.page-button {
+  padding: 8px 16px;
+  border: none;
+  cursor: pointer;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+}
+
+.page-button:hover {
+  background-color: #e0e0e0;
+}
+
+.page-button.active {
+  background-color: #007bff;
+  color: white;
+}
+
+
+
 @media (max-width: 768px) {
   .project-form-card {
     margin: 1rem;
