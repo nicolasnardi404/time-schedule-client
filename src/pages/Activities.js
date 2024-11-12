@@ -366,22 +366,22 @@ export default function Activities() {
     <>
       <NavBar />
       <Container className="mt-4">
-        <div className="d-flex justify-content-between align-items-center mb-4">
+        <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
           <h2>Activities</h2>
-          <div className="d-flex gap-2">
-            <Button onClick={() => setShowModal(true)}>Add Activity</Button>
-          </div>
+          <Button onClick={() => setShowModal(true)} className="mt-2 mt-md-0">Add Activity</Button>
         </div>
 
         <div className="mb-4">
-          <ButtonGroup>
+          <ButtonGroup className="d-flex flex-column flex-md-row w-100">
             <Button
+              className="mb-2 mb-md-0"
               variant={filterStatus === 'all' ? 'primary' : 'outline-primary'}
               onClick={() => setFilterStatus('all')}
             >
               All Activities ({activityCounts.all})
             </Button>
             <Button
+              className="mb-2 mb-md-0"
               variant={filterStatus === 'open' ? 'primary' : 'outline-primary'}
               onClick={() => setFilterStatus('open')}
             >
@@ -409,9 +409,9 @@ export default function Activities() {
 
             return (
               <div key={monthYear} className="mb-5">
-                <div className="d-flex justify-content-between align-items-center mb-3">
+                <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3">
                   <h3>{monthYear}</h3>
-                  <div className="d-flex gap-2">
+                  <div className="d-flex gap-2 mt-2 mt-md-0">
                     <Button 
                       variant="warning"
                       onClick={() => handleCloseMonth(year, month)}
@@ -427,19 +427,18 @@ export default function Activities() {
                   </div>
                 </div>
 
-                {/* Monthly totals */}
                 <div className="card mb-3">
                   <div className="card-body">
                     <div className="row g-3">
                       {filterStatus === 'all' ? (
                         <>
-                          <div className="col-md-3">
+                          <div className="col-12 col-md-3">
                             <div className="d-flex justify-content-between">
                               <span>Total Hours:</span>
                               <strong>{calculateTotalHours(monthActivities)} hours</strong>
                             </div>
                           </div>
-                          <div className="col-md-3">
+                          <div className="col-12 col-md-3">
                             <div className="d-flex justify-content-between">
                               <span>Open Value:</span>
                               <strong>${calculateTotalValue(
@@ -448,7 +447,7 @@ export default function Activities() {
                               )}</strong>
                             </div>
                           </div>
-                          <div className="col-md-3">
+                          <div className="col-12 col-md-3">
                             <div className="d-flex justify-content-between">
                               <span>Closed Value:</span>
                               <strong>${calculateTotalValue(
@@ -457,7 +456,7 @@ export default function Activities() {
                               )}</strong>
                             </div>
                           </div>
-                          <div className="col-md-3">
+                          <div className="col-12 col-md-3">
                             <div className="d-flex justify-content-between">
                               <span>Total Value:</span>
                               <strong>${calculateTotalValue(
@@ -469,13 +468,13 @@ export default function Activities() {
                         </>
                       ) : (
                         <>
-                          <div className="col-md-6">
+                          <div className="col-12 col-md-6">
                             <div className="d-flex justify-content-between">
                               <span>Total Hours:</span>
                               <strong>{calculateTotalHours(monthActivities)} hours</strong>
                             </div>
                           </div>
-                          <div className="col-md-6">
+                          <div className="col-12 col-md-6">
                             <div className="d-flex justify-content-between">
                               <span>Total Value:</span>
                               <strong>${calculateTotalValue(
@@ -495,21 +494,25 @@ export default function Activities() {
                     <div key={activity.id} className="mb-2">
                       <div className={`card shadow-sm ${activity.isClosed ? 'border-success' : 'border-warning'}`}>
                         <div className="card-body py-2">
-                          <div className="d-flex justify-content-between align-items-center">
-                            <div className="d-flex align-items-center flex-grow-1 gap-3">
-                              <h6 className="mb-0" style={{ minWidth: '200px' }}>{activity.description}</h6>
-                              <small className="text-muted">
-                                <i className="far fa-clock me-1"></i>
-                                {new Date(activity.beginning).toLocaleString()}
-                              </small>
-                              <small className="text-muted">
-                                <i className="far fa-clock me-1"></i>
-                                {new Date(activity.end).toLocaleString()}
-                              </small>
-                              <span className="badge bg-primary">{calculateHours(activity.beginning, activity.end)}h</span>
-                              <span className={`badge ${activity.isClosed ? 'bg-success' : 'bg-warning'}`}>
-                                {activity.isClosed ? 'Closed' : 'Open'}
-                              </span>
+                          <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
+                            <div className="d-flex flex-column flex-md-row align-items-start align-items-md-center flex-grow-1 gap-2 gap-md-3 mb-2 mb-md-0">
+                              <h6 className="mb-0">{activity.description}</h6>
+                              <div className="d-flex flex-column flex-md-row gap-2">
+                                <small className="text-muted">
+                                  <i className="far fa-clock me-1"></i>
+                                  {new Date(activity.beginning).toLocaleString()}
+                                </small>
+                                <small className="text-muted">
+                                  <i className="far fa-clock me-1"></i>
+                                  {new Date(activity.end).toLocaleString()}
+                                </small>
+                              </div>
+                              <div className="d-flex gap-2">
+                                <span className="badge bg-primary">{calculateHours(activity.beginning, activity.end)}h</span>
+                                <span className={`badge ${activity.isClosed ? 'bg-success' : 'bg-warning'}`}>
+                                  {activity.isClosed ? 'Closed' : 'Open'}
+                                </span>
+                              </div>
                             </div>
                             
                             <div className="d-flex gap-2">
