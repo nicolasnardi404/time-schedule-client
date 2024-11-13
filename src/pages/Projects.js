@@ -149,24 +149,24 @@ export default function Projects() {
                   <div className="card-body d-flex flex-column">
                     <div className="d-flex justify-content-between align-items-center mb-3">
                       <h5 className="card-title mb-0">{project.nameProject || "-"}</h5>
-                      <Dropdown>
-                        <Dropdown.Toggle 
-                          variant="link" 
-                          id={`dropdown-${project.id}`} 
-                          className="text-muted p-0" 
-                          style={{ fontSize: '1.2rem', lineHeight: '1' }}
+                      <div className="d-flex gap-1">
+                        <Button 
+                          variant="outline-primary" 
+                          size="sm"
+                          className="py-0 px-2"
+                          onClick={() => navigate(`/update-project/${project.id}`)}
                         >
-                          ...
-                        </Dropdown.Toggle>
-                        <Dropdown.Menu>
-                          <Dropdown.Item onClick={() => navigate(`/update-project/${project.id}`)}>
-                            Edit
-                          </Dropdown.Item>
-                          <Dropdown.Item onClick={() => handleDelete(project.id)}>
-                            Delete
-                          </Dropdown.Item>
-                        </Dropdown.Menu>
-                      </Dropdown>
+                          Edit
+                        </Button>
+                        <Button 
+                          variant="outline-danger" 
+                          size="sm"
+                          className="py-0 px-2"
+                          onClick={() => handleDelete(project.id)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
                     </div>
                     <p className="card-text text-muted">{project.description || "-"}</p>
                     <div className="mt-auto">
