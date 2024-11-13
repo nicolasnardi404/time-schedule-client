@@ -24,7 +24,7 @@ export default function Projects() {
   const fetchProjects = async () => {
     try {
       const response = await axios.get(
-        `http://localhost:8080/api/project/${user.id}/pagination?page=${currentPage - 1}&size=10`,
+        `http://localhost:8080/api/project/${user.id}/pagination?page=${currentPage - 1}&size=12`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -33,11 +33,9 @@ export default function Projects() {
       );
       setProjects(response.data.content);
       setTotalProjects(response.data.totalCount);
-      // Calculate total pages based on the totalCount
-      const totalPages = Math.ceil(response.data.totalCount / 10); // Assuming 10 projects per page
-      setCurrentPage(Math.min(currentPage, totalPages)); // Ensure currentPage doesn't exceed totalPages
+      const totalPages = Math.ceil(response.data.totalCount / 12);
+      setCurrentPage(Math.min(currentPage, totalPages));
     } catch (error) {
-
       console.error("Error:", error);
     }
   };
@@ -87,7 +85,7 @@ export default function Projects() {
   };
 
   const handlePageChange = (newPage) => {
-    if (typeof newPage === 'number' && newPage >= 1 && newPage <= Math.ceil(totalProjects / 10)) {
+    if (typeof newPage === 'number' && newPage >= 1 && newPage <= Math.ceil(totalProjects / 12)) {
       setCurrentPage(newPage);
     } else {
       console.warn(`Invalid page number: ${newPage}`);
@@ -203,7 +201,7 @@ export default function Projects() {
         {projects.length > 0 && (
           <>
             <PaginationComponent 
-              totalPages={Math.ceil(totalProjects / 10)} 
+              totalPages={Math.ceil(totalProjects / 12)} 
               currentPage={currentPage} 
               onPageChange={handlePageChange}
             />
