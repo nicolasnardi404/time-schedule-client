@@ -7,20 +7,24 @@ const PaginationComponent = ({ totalPages, currentPage, onPageChange }) => {
     pages.push(i);
   }
 
-  console.log(totalPages, currentPage, onPageChange )
+  const safeCurrentPage = isNaN(currentPage) ? 1 : currentPage;
 
   return (
-    <div className="pagination">
-      {pages.map((page) => (
-        <button
-          key={page}
-          onClick={() => onPageChange(page)}
-          disabled={page === currentPage}
-          className={`page-button ${page === currentPage ? 'active' : ''}`}
-        >
-          {page}
-        </button>
-      ))}
+    <div className="custom-pagination">
+      {pages.map((page) => {
+        const isActive = page === safeCurrentPage;
+        console.log('Page:', page, 'Current:', currentPage, 'Is Active:', isActive);
+        
+        return (
+          <button
+            key={page}
+            onClick={() => onPageChange(page)}
+            className={`pagination-button ${isActive ? 'active' : ''}`}
+          >
+            {page}
+          </button>
+        );
+      })}
     </div>
   );
 };

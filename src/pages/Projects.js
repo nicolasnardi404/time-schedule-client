@@ -17,8 +17,15 @@ export default function Projects() {
   const [totalProjects, setTotalProjects] = useState(0);
 
   useEffect(() => {
-    fetchProjects();
-    fetchTotalProjects();
+    if (isNaN(currentPage)) {
+      return;
+    }
+    
+    const fetchData = async () => {
+      await fetchProjects();
+      await fetchTotalProjects();
+    };
+    fetchData();
   }, [currentPage]);
 
   const fetchProjects = async () => {
@@ -33,9 +40,8 @@ export default function Projects() {
       );
       setProjects(response.data.content);
       setTotalProjects(response.data.totalCount);
-      const totalPages = Math.ceil(response.data.totalCount / 12);
-      setCurrentPage(Math.min(currentPage, totalPages));
     } catch (error) {
+      setError("Failed to fetch projects");
       console.error("Error:", error);
     }
   };
@@ -113,7 +119,7 @@ export default function Projects() {
   return (
     <>
       <NavBar />
-      <Container className="mt-4">
+      <Container >
         {error && (
           <Alert variant="danger" className="mb-4">
             {error}

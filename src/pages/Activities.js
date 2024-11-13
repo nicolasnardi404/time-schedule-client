@@ -365,7 +365,7 @@ export default function Activities() {
   return (
     <>
       <NavBar />
-      <Container className="mt-4">
+      <Container >
         <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
           <h2>Activities</h2>
           <Button onClick={() => setShowModal(true)} className="mt-2 mt-md-0">Add Activity</Button>

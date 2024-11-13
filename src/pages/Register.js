@@ -25,10 +25,14 @@ export default function Register() {
       login(response.data.token);
       navigate("/");
     } catch (error) {
-      setError(
-        error.response?.data?.message ||
-          "Registration failed. Please try again."
-      );
+      if (error.response?.status === 409) {
+        setError("Username already exists. Please choose a different username.");
+      } else {
+        setError(
+          error.response?.data?.message ||
+            "Registration failed. Please try again."
+        );
+      }
     }
   };
 

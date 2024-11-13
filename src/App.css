@@ -24,7 +24,7 @@ body {
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1rem 2rem;
 }
 
 /* Navigation Styles */
@@ -32,7 +32,6 @@ body {
   background-color: var(--surface);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   padding: 1rem 2rem;
-  margin-bottom: 2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -200,25 +199,35 @@ body {
 
 .pagination {
   display: flex;
+  justify-content: center;
   gap: 10px;
   margin-top: 20px;
 }
 
-.page-button {
-  padding: 8px 16px;
-  border: none;
+.pagination-button {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  background-color: var(--surface);
+  color: var(--text-primary);
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.2s ease;
   cursor: pointer;
-  background-color: #f0f0f0;
-  border-radius: 4px;
 }
 
-.page-button:hover {
-  background-color: #e0e0e0;
-}
-
-.page-button.active {
-  background-color: #007bff;
+.pagination-button:hover {
+  background-color: var(--primary);
   color: white;
+  border-color: var(--primary);
+  opacity: 0.9;
+}
+
+.pagination-button.active {
+  background-color: var(--primary) !important;
+  color: white !important;
+  border-color: var(--primary) !important;
 }
 
 .btn-ellipsis {
@@ -352,4 +361,18 @@ body {
 .dropdown {
   position: relative;
   z-index: 3;
+}
+
+/* Update the navbar padding */
+.navbar {
+  padding: 0.5rem 0;
+  margin-bottom: 0.5rem;
+}
+
+.custom-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin: 2rem 0;
 }
