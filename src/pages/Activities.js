@@ -362,6 +362,8 @@ export default function Activities() {
     }
   };
 
+  hahah
+
   return (
     <>
       <NavBar />
