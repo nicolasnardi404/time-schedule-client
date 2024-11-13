@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "../context/AuthContext";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Button, Container, Table, Modal, Alert } from "react-bootstrap";
+import { Button, Container, Alert, Modal, Dropdown, DropdownButton } from "react-bootstrap";
+import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import NavBar from "../components/NavBar";
+import PaginationComponent from "../components/PaginationComponent"
 
 export default function Projects() {
   const [projects, setProjects] = useState([]);
@@ -12,24 +13,68 @@ export default function Projects() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState(null);
   const [error, setError] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalProjects, setTotalProjects] = useState(0);
 
   useEffect(() => {
     fetchProjects();
-  }, [user.id]);
+    fetchTotalProjects();
+  }, [currentPage]);
 
   const fetchProjects = async () => {
     try {
       const response = await axios.get(
-        `http://localhost:8080/api/project/${user.id}/all-projects`,
+        `http://localhost:8080/api/project/${user.id}/pagination?page=${currentPage - 1}&size=12`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         }
       );
+      setProjects(response.data.content);
+      setTotalProjects(response.data.totalCount);
+      const totalPages = Math.ceil(response.data.totalCount / 12);
+      setCurrentPage(Math.min(currentPage, totalPages));
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+
+  const fetchTotalProjects = async () => {
+    try {
+      const response = await axios.get(
+        `http://localhost:8080/api/project/${user.id}/projects/count`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      setTotalProjects(response.data);
+    } catch (error) {
+      console.error('Error fetching total projects:', error);
+      setTotalProjects(0);
+    }
+  };
+
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    const searchTerm = e.target.querySelector('input').value;
+    
+    try {
+      const response = await axios.get(
+        `http://localhost:8080/api/project/${user.id}/search`,
+        {
+          params: { searchTerm },
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      
       setProjects(response.data);
     } catch (error) {
-      setError("Failed to fetch projects");
+      setError("Failed to perform search");
       console.error("Error:", error);
     }
   };
@@ -37,6 +82,14 @@ export default function Projects() {
   const handleDelete = (projectId) => {
     setProjectToDelete(projectId);
     setShowDeleteModal(true);
+  };
+
+  const handlePageChange = (newPage) => {
+    if (typeof newPage === 'number' && newPage >= 1 && newPage <= Math.ceil(totalProjects / 12)) {
+      setCurrentPage(newPage);
+    } else {
+      console.warn(`Invalid page number: ${newPage}`);
+    }
   };
 
   const confirmDelete = async () => {
@@ -61,6 +114,12 @@ export default function Projects() {
     <>
       <NavBar />
       <Container className="mt-4">
+        {error && (
+          <Alert variant="danger" className="mb-4">
+            {error}
+          </Alert>
+        )}
+
         <div className="d-flex justify-content-between align-items-center mb-4">
           <h2>My Projects</h2>
           <Button onClick={() => navigate("/add-project")}>
@@ -68,90 +127,103 @@ export default function Projects() {
           </Button>
         </div>
 
-        {error && (
-          <Alert variant="danger" className="mb-4">
-            {error}
-          </Alert>
-        )}
+        <form onSubmit={handleSearch} className="mb-4">
+          <div className="input-group">
+            <input 
+              className="form-control" 
+              type="text" 
+              placeholder="Search projects..." 
+              aria-label="Search"
+            />
+            <button className="btn btn-outline-success" type="submit">
+              Search
+            </button>
+          </div>
+        </form>
 
-        <Table striped bordered hover responsive>
-          <thead>
-            <tr>
-              <th>Project</th>
-              <th>Description</th>
-              <th>Created at</th>
-              <th>Value per Hour</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {projects.length > 0 ? (
-              projects.map((project) => (
-                <tr key={project.id}>
-                  <td>{project.nameProject || "-"}</td>
-                  <td>{project.description || "-"}</td>
-                  <td>{new Date(project.creationDate).toLocaleString()}</td>
-                  <td>${project.valuePerHour || "-"}</td>
-                  <td>
-                    <div className="d-flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() =>
-                          navigate(`/project/${project.id}/activities`)
-                        }
+        <div className="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+          {projects.length > 0 ? (
+            projects.map((project) => (
+              <div key={project.id} className="col">
+                <div className="card h-100 shadow-sm border-0">
+                  <div className="card-body d-flex flex-column">
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                      <h5 className="card-title mb-0">{project.nameProject || "-"}</h5>
+                      <Dropdown>
+                        <Dropdown.Toggle 
+                          variant="link" 
+                          id={`dropdown-${project.id}`} 
+                          className="text-muted p-0" 
+                          style={{ fontSize: '1.2rem', lineHeight: '1' }}
+                        >
+                          ...
+                        </Dropdown.Toggle>
+                        <Dropdown.Menu>
+                          <Dropdown.Item onClick={() => navigate(`/update-project/${project.id}`)}>
+                            Edit
+                          </Dropdown.Item>
+                          <Dropdown.Item onClick={() => handleDelete(project.id)}>
+                            Delete
+                          </Dropdown.Item>
+                        </Dropdown.Menu>
+                      </Dropdown>
+                    </div>
+                    <p className="card-text text-muted">{project.description || "-"}</p>
+                    <div className="mt-auto">
+                      <div className="d-flex justify-content-between align-items-center mb-2">
+                        <small className="text-muted">
+                          Created: {new Date(project.creationDate).toLocaleString()}
+                        </small>
+                        <span className="badge bg-primary">
+                          ${project.valuePerHour || "-"}/hr
+                        </span>
+                      </div>
+                      <Button 
+                        variant="outline-primary" 
+                        size="sm" 
+                        onClick={() => navigate(`/project/${project.id}/activities`)}
+                        className="w-100"
                       >
                         Activities
                       </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() =>
-                          navigate(`/update-project/${project.id}`)
-                        }
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => handleDelete(project.id)}
-                      >
-                        Delete
-                      </Button>
                     </div>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="5" className="text-center">
-                  No projects found
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </Table>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="col-12 text-center">
+              <p className="text-muted">No projects found</p>
+            </div>
+          )}
+        </div>
 
-        <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
-          <Modal.Header closeButton>
-            <Modal.Title>Confirm Delete</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            Are you sure you want to delete this project? This action cannot be
-            undone.
-          </Modal.Body>
-          <Modal.Footer>
-            <Button
-              variant="secondary"
-              onClick={() => setShowDeleteModal(false)}
-            >
-              Cancel
-            </Button>
-            <Button variant="danger" onClick={confirmDelete}>
-              Delete
-            </Button>
-          </Modal.Footer>
-        </Modal>
+        {projects.length > 0 && (
+          <>
+            <PaginationComponent 
+              totalPages={Math.ceil(totalProjects / 12)} 
+              currentPage={currentPage} 
+              onPageChange={handlePageChange}
+            />
+            
+            <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
+              <Modal.Header closeButton>
+                <Modal.Title>Confirm Delete</Modal.Title>
+              </Modal.Header>
+              <Modal.Body>
+                Are you sure you want to delete this project? This action cannot be undone.
+              </Modal.Body>
+              <Modal.Footer>
+                <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+                  Cancel
+                </Button>
+                <Button variant="danger" onClick={confirmDelete}>
+                  Delete
+                </Button>
+              </Modal.Footer>
+            </Modal>
+          </>
+        )}
       </Container>
     </>
   );

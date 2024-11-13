@@ -89,6 +89,7 @@ export default function AddProjectForm() {
           value={newProject.nameProject}
           onChange={handleChange}
           placeholder="Enter project name"
+          required
         />
       </Form.Group>
 
@@ -112,6 +113,7 @@ export default function AddProjectForm() {
           value={newProject.valuePerHour}
           onChange={handleChange}
           placeholder="Enter Value per hour"
+          required
         />
       </Form.Group>
 
