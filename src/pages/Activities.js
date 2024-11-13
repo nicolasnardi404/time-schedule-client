@@ -160,8 +160,8 @@ export default function Activities() {
         },
       });
 
-      const activitiesData = Array.isArray(response.data)
-        ? response.data.map((activity) => ({
+      const activitiesData = Array.isArray(response.data.activities)
+        ? response.data.activities.map((activity) => ({
             id: activity.id,
             description: activity.description,
             beginning: activity.beginning,
@@ -171,6 +171,10 @@ export default function Activities() {
         : [];
 
       setActivities(activitiesData);
+      setProjectDetails({
+        name: response.data.projectName,
+        valuePerHour: response.data.projectValuePerHour
+      });
     } catch (error) {
       console.error("GET activities error:", error.response?.status);
       setError("Failed to fetch activities");
@@ -367,7 +371,7 @@ export default function Activities() {
       <NavBar />
       <Container >
         <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
-          <h2>Activities</h2>
+          <h2>{projectDetails?.name || 'Activities'}</h2>
           <Button onClick={() => setShowModal(true)} className="mt-2 mt-md-0">Add Activity</Button>
         </div>
 
